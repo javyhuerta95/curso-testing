@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,6 +46,7 @@ class CuentaTest {
         System.out.println("Finalizando el metodo por cada test");
     }
 
+    @Tag("Cuenta")
     @Nested
     @DisplayName("Probando atributos")
     class cuentaNombreSaldoTest{
@@ -218,70 +220,82 @@ class CuentaTest {
     }
 
 
-    @DisplayName("Probando debito cuenta repetir")
-    @RepeatedTest(value=5, name = "{displayName} - Repeticion numero {currentRepetition} de {totalRepetitions}")
-    void debitoCuentaRepetir(RepetitionInfo info) {
-        if (info.getCurrentRepetition() == 3) {
-            System.out.println("Repeticion actual: "+info.getCurrentRepetition());
+
+    @Tag("params")
+    @Nested
+    class pruebasParametrizadas{
+
+        @DisplayName("Probando debito cuenta repetir")
+        @RepeatedTest(value=5, name = "{displayName} - Repeticion numero {currentRepetition} de {totalRepetitions}")
+        void debitoCuentaRepetir(RepetitionInfo info) {
+            if (info.getCurrentRepetition() == 3) {
+                System.out.println("Repeticion actual: "+info.getCurrentRepetition());
+            }
+            cuenta = new Cuenta("Javy", new BigDecimal("1000.302"));
+            cuenta.debito(new BigDecimal("100"));
+            assertNotNull(cuenta.getSaldo());
+            assertEquals(900,cuenta.getSaldo().intValue());
+            assertEquals("900.302",cuenta.getSaldo().toPlainString());
         }
-        cuenta = new Cuenta("Javy", new BigDecimal("1000.302"));
-        cuenta.debito(new BigDecimal("100"));
-        assertNotNull(cuenta.getSaldo());
-        assertEquals(900,cuenta.getSaldo().intValue());
-        assertEquals("900.302",cuenta.getSaldo().toPlainString());
+
+        @DisplayName("Probando test parametrizado")
+        @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
+        @ValueSource(strings = {"10","20","30","50","70","100"})
+        void debitoCuentaParametrizadoString(String monto) {
+            cuenta.debito(new BigDecimal(monto));
+            assertNotNull(cuenta.getSaldo());
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+
+        }
+
+        @DisplayName("Probando test parametrizado CSV")
+        @ParameterizedTest(name = "Numero {index} ejecutando con valor {1}")
+        @CsvSource({"1,10","2,20","3,30","4,50","5,150.69",})
+        void debitoCuentaParametrizadoCsv(String index, String monto) {
+            cuenta.debito(new BigDecimal(monto));
+            assertNotNull(cuenta.getSaldo());
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        }
+
+        @DisplayName("Probando test parametrizado CSV")
+        @ParameterizedTest(name = "Numero {index} ejecutando con valor {1}")
+        @CsvSource({"20,10","25,20","190,200","25,25","150.69,150.69",})
+        void debitoCuentaParametrizadoCsv2(String saldo, String monto) {
+            cuenta.setSaldo(new BigDecimal(saldo));
+            cuenta.debito(new BigDecimal(monto));
+            assertNotNull(cuenta.getSaldo());
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        }
+
+        @DisplayName("Probando test parametrizado CSV File")
+        @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
+        @CsvFileSource(resources = "/data.csv")
+        void debitoCuentaParametrizadoCsvFile(String monto) {
+            cuenta.debito(new BigDecimal(monto));
+            assertNotNull(cuenta.getSaldo());
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+
+        }
+
+
+        @DisplayName("Probando test parametrizado CSV Method")
+        @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
+        @MethodSource("montoList")
+        void debitoCuentaParametrizadoCsvMethod(String monto) {
+            cuenta.debito(new BigDecimal(monto));
+            assertNotNull(cuenta.getSaldo());
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        }
+
+        static List<String> montoList(){
+            return Arrays.asList("10","20","30","50","70","100");
+        }
     }
 
-    @DisplayName("Probando test parametrizado")
-    @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
-    @ValueSource(strings = {"10","20","30","50","70","100"})
-    void debitoCuentaParametrizadoString(String monto) {
-        cuenta.debito(new BigDecimal(monto));
-        assertNotNull(cuenta.getSaldo());
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
 
+    @Test
+    @Timeout(5)
+    void pruebaTimeOut() {
+        //TimeUnit.SECONDS.sleep(6L);
     }
-
-    @DisplayName("Probando test parametrizado CSV")
-    @ParameterizedTest(name = "Numero {index} ejecutando con valor {1}")
-    @CsvSource({"1,10","2,20","3,30","4,50","5,150.69",})
-    void debitoCuentaParametrizadoCsv(String index, String monto) {
-        cuenta.debito(new BigDecimal(monto));
-        assertNotNull(cuenta.getSaldo());
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
-    }
-
-    @DisplayName("Probando test parametrizado CSV")
-    @ParameterizedTest(name = "Numero {index} ejecutando con valor {1}")
-    @CsvSource({"20,10","25,20","190,200","25,25","150.69,150.69",})
-    void debitoCuentaParametrizadoCsv2(String saldo, String monto) {
-        cuenta.setSaldo(new BigDecimal(saldo));
-        cuenta.debito(new BigDecimal(monto));
-        assertNotNull(cuenta.getSaldo());
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
-    }
-
-    @DisplayName("Probando test parametrizado CSV File")
-    @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
-    @CsvFileSource(resources = "/data.csv")
-    void debitoCuentaParametrizadoCsvFile(String monto) {
-        cuenta.debito(new BigDecimal(monto));
-        assertNotNull(cuenta.getSaldo());
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
-
-    }
-
-
-    @DisplayName("Probando test parametrizado CSV Method")
-    @ParameterizedTest(name = "Numero {index} ejecutando con valor {0}")
-    @MethodSource("montoList")
-    void debitoCuentaParametrizadoCsvMethod(String monto) {
-        cuenta.debito(new BigDecimal(monto));
-        assertNotNull(cuenta.getSaldo());
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
-    }
-
-    static List<String> montoList(){
-        return Arrays.asList("10","20","30","50","70","100");
-    }
-
 }
